@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HTML Viewer — Console</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --ink: #0d1117;
+    --panel: #12181f;
+    --panel-2: #161d26;
+    --paper: #f4f1ea;
+    --amber: #e8a33d;
+    --teal: #4fb3a3;
+    --red: #e06565;
+    --line: #232b35;
+    --text-dim: #7c8a99;
+    --text: #d8dee6;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%;
+    background:var(--ink);
+    color:var(--text);
+    font-family:'Space Grotesk',sans-serif;
+    overflow:hidden;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+
+  /* Top bar */
+  .topbar{
+    height:56px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 20px;
+    background:var(--panel);
+    border-bottom:1px solid var(--line);
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .brand .dot{
+    width:10px;height:10px;border-radius:50%;
+    background:var(--amber);
+    box-shadow:0 0 8px var(--amber);
+  }
+  .brand h1{
+    font-size:15px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    font-weight:600;
+    margin:0;
+    color:var(--paper);
+  }
+  .brand .tag{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--text-dim);
+    border:1px solid var(--line);
+    padding:2px 8px;
+    border-radius:20px;
+  }
+  .actions{display:flex; gap:8px;}
+  button{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:13px;
+    font-weight:600;
+    border:1px solid var(--line);
+    background:var(--panel-2);
+    color:var(--text);
+    padding:8px 14px;
+    border-radius:6px;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  button:hover{ border-color:var(--amber); color:var(--paper); }
+  button:focus-visible{ outline:2px solid var(--amber); outline-offset:2px; }
+  button.primary{
+    background:var(--amber);
+    color:#1b1305;
+    border-color:var(--amber);
+  }
+  button.primary:hover{ filter:brightness(1.08); color:#1b1305; }
+  button.ghost{ background:transparent; }
+  button.danger:hover{ border-color:var(--red); color:var(--red); }
+
+  /* Body split */
+  .workspace{
+    display:flex;
+    height:calc(100% - 56px - 30px);
+  }
+  .pane{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    min-width:0;
+  }
+  .pane-head{
+    height:34px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:0 14px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    border-bottom:1px solid var(--line);
+    background:var(--panel);
+    flex-shrink:0;
+  }
+  .pane-head .num{ color:var(--amber); }
+
+  #editor{
+    flex:1;
+    width:100%;
+    resize:none;
+    border:none;
+    outline:none;
+    background:var(--ink);
+    color:var(--text);
+    font-family:'JetBrains Mono',monospace;
+    font-size:13.5px;
+    line-height:1.6;
+    padding:16px 18px;
+    tab-size:2;
+  }
+  #editor::selection{ background:rgba(232,163,61,0.25); }
+
+  .divider{
+    width:1px;
+    background:var(--line);
+    flex-shrink:0;
+  }
+
+  .browser-chrome{
+    height:34px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:0 12px;
+    background:var(--panel);
+    border-bottom:1px solid var(--line);
+    flex-shrink:0;
+  }
+  .traffic{ display:flex; gap:6px; flex-shrink:0; }
+  .traffic i{ width:9px; height:9px; border-radius:50%; display:block; opacity:0.85; }
+  .chrome-btn{
+    border:none;
+    background:transparent;
+    color:var(--text-dim);
+    font-size:15px;
+    line-height:1;
+    padding:2px 4px;
+    border-radius:4px;
+    cursor:pointer;
+    flex-shrink:0;
+  }
+  .chrome-btn:hover{ color:var(--paper); background:var(--panel-2); }
+  .chrome-btn:focus-visible{ outline:2px solid var(--amber); outline-offset:1px; }
+  .address-bar{
+    flex:1;
+    min-width:0;
+    background:var(--ink);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:5px 14px;
+    font-size:11.5px;
+    color:var(--text-dim);
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+
+  #preview-frame{
+    flex:1;
+    width:100%;
+    border:none;
+    background:var(--paper);
+  }
+
+  .preview-wrap{ position:relative; flex:1; display:flex; }
+  .empty-state{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    background:var(--paper);
+    color:#8a8478;
+    gap:8px;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12.5px;
+    text-align:center;
+    padding:20px;
+  }
+  .empty-state strong{ color:#3a362e; font-family:'Space Grotesk',sans-serif; font-size:15px; }
+
+  /* Status bar */
+  .statusbar{
+    height:30px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 16px;
+    background:var(--panel);
+    border-top:1px solid var(--line);
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:var(--text-dim);
+  }
+  .statusbar .status-ok{ color:var(--teal); }
+  .statusbar .status-err{ color:var(--red); }
+  .statusbar span{ display:flex; align-items:center; gap:6px; }
+
+  @media (max-width: 860px){
+    .workspace{ flex-direction:column; }
+    .divider{ width:100%; height:1px; }
+    .topbar{ flex-wrap:wrap; height:auto; gap:10px; padding:12px; }
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ transition:none !important; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="topbar">
+    <div class="brand">
+      <span class="dot"></span>
+      <h1>HTML Viewer</h1>
+      <span class="tag mono">console v1</span>
+    </div>
+    <div class="actions">
+      <button class="ghost" id="btnSample">Nạp mẫu</button>
+      <button class="danger ghost" id="btnClear">Xoá</button>
+      <button id="btnDownload">Tải .html</button>
+      <button id="btnOpenTab">↗ Mở tab riêng</button>
+      <button class="primary" id="btnRun">▶ Chạy (Ctrl+Enter)</button>
+    </div>
+  </div>
+
+  <div class="workspace">
+    <div class="pane">
+      <div class="pane-head"><span class="num">01</span> mã nguồn</div>
+      <textarea id="editor" class="mono" spellcheck="false" autocapitalize="off" autocorrect="off"></textarea>
+    </div>
+    <div class="divider"></div>
+    <div class="pane">
+      <div class="browser-chrome">
+        <span class="traffic"><i style="background:#e06565"></i><i style="background:#e8a33d"></i><i style="background:#4fb3a3"></i></span>
+        <button class="chrome-btn" id="btnReload" title="Tải lại" aria-label="Tải lại trang xem trước">⟳</button>
+        <div class="address-bar mono" id="addressBar">xem-truoc.html</div>
+      </div>
+      <div class="preview-wrap">
+        <div class="empty-state" id="emptyState">
+          <strong>Chưa có gì để hiển thị</strong>
+          <span>Dán mã HTML vào ô bên trái rồi nhấn Chạy</span>
+        </div>
+        <iframe id="preview-frame" sandbox="allow-scripts allow-forms allow-modals allow-popups" style="display:none;"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <div class="statusbar">
+    <span id="statusLeft" class="status-ok">● sẵn sàng</span>
+    <span id="statusRight" class="mono">0 ký tự</span>
+  </div>
+
+<script>
+  const editor = document.getElementById('editor');
+  const frame = document.getElementById('preview-frame');
+  const emptyState = document.getElementById('emptyState');
+  const statusLeft = document.getElementById('statusLeft');
+  const statusRight = document.getElementById('statusRight');
+
+  const SAMPLE = `<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Trang mẫu</title>
+<style>
+  body{ font-family: sans-serif; background:#fdf6e3; padding:40px; text-align:center; }
+  h1{ color:#cb4b16; }
+  button{ padding:10px 20px; border-radius:8px; border:none; background:#268bd2; color:white; cursor:pointer; }
+</style>
+</head>
+<body>
+  <h1>Xin chào 👋</h1>
+  <p>Đây là trang HTML mẫu. Sửa mã bên trái và nhấn Chạy để xem thay đổi.</p>
+  <button onclick="alert('Bạn vừa nhấn nút!')">Nhấn vào đây</button>
+</body>
+</html>`;
+
+  function render(){
+    const code = editor.value;
+    localStorage_safe_set(code);
+    statusRight.textContent = code.length.toLocaleString('vi-VN') + ' ký tự';
+
+    if(code.trim() === ''){
+      frame.style.display = 'none';
+      emptyState.style.display = 'flex';
+      statusLeft.className = 'status-ok';
+      statusLeft.textContent = '● sẵn sàng';
+      return;
+    }
+
+    emptyState.style.display = 'none';
+    frame.style.display = 'block';
+
+    try{
+      frame.srcdoc = code;
+      statusLeft.className = 'status-ok';
+      statusLeft.textContent = '● đã hiển thị lúc ' + new Date().toLocaleTimeString('vi-VN');
+    }catch(e){
+      statusLeft.className = 'status-err';
+      statusLeft.textContent = '✕ lỗi hiển thị: ' + e.message;
+    }
+  }
+
+  // Note: artifacts/sandboxed contexts may block localStorage — fail silently.
+  function localStorage_safe_set(){ /* intentionally no-op: in-memory only for this session */ }
+
+  document.getElementById('btnRun').addEventListener('click', render);
+  document.getElementById('btnReload').addEventListener('click', render);
+  document.getElementById('btnClear').addEventListener('click', () => {
+    editor.value = '';
+    render();
+    editor.focus();
+  });
+  document.getElementById('btnSample').addEventListener('click', () => {
+    editor.value = SAMPLE;
+    render();
+  });
+  document.getElementById('btnOpenTab').addEventListener('click', () => {
+    const code = editor.value;
+    if(code.trim() === ''){
+      statusLeft.className = 'status-err';
+      statusLeft.textContent = '✕ chưa có mã để mở';
+      return;
+    }
+    const blob = new Blob([code], {type:'text/html'});
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if(!win){
+      statusLeft.className = 'status-err';
+      statusLeft.textContent = '✕ trình duyệt đã chặn cửa sổ mới — hãy cho phép popup';
+      URL.revokeObjectURL(url);
+      return;
+    }
+    statusLeft.className = 'status-ok';
+    statusLeft.textContent = '● đã mở tab riêng lúc ' + new Date().toLocaleTimeString('vi-VN');
+    // Giải phóng URL sau khi tab mới đã tải xong
+    setTimeout(() => URL.revokeObjectURL(url), 15000);
+  });
+
+  document.getElementById('btnDownload').addEventListener('click', () => {
+    const blob = new Blob([editor.value || ''], {type:'text/html'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'trang-cua-toi.html';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  editor.addEventListener('keydown', (e) => {
+    if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){
+      e.preventDefault();
+      render();
+    }
+    // Simple tab support
+    if(e.key === 'Tab'){
+      e.preventDefault();
+      const start = editor.selectionStart, end = editor.selectionEnd;
+      editor.value = editor.value.substring(0,start) + '  ' + editor.value.substring(end);
+      editor.selectionStart = editor.selectionEnd = start + 2;
+    }
+  });
+
+  editor.addEventListener('input', () => {
+    statusRight.textContent = editor.value.length.toLocaleString('vi-VN') + ' ký tự';
+  });
+
+  // Load sample on first open
+  editor.value = SAMPLE;
+  render();
+</script>
+
+</body>
+</html>
